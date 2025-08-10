@@ -28,19 +28,22 @@ public class ProductoController {
         return new ResponseEntity<>(productosService.productoCodigo(cod),HttpStatus.OK);
     }
 
-    @PostMapping(value = "producto/alta", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Void>> altaProducto(@RequestBody Producto producto) {
-        return productosService.altaProducto(producto)
-                .then(Mono.just(ResponseEntity.ok().<Void>build()))
-                .onErrorResume(e -> {
-                    String msg = e.getMessage(); // 💡 prevenir NPE
-                    if (msg != null && msg.contains("Producto ya registrado")) {
-                        return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build());
-                    }
-                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
-                });
+//    @PostMapping(value = "producto/alta", consumes = MediaType.APPLICATION_JSON_VALUE)
+//    public Mono<ResponseEntity<Void>> altaProducto(@RequestBody Producto producto) {
+//        return productosService.altaProducto(producto)
+//                .then(Mono.just(ResponseEntity.ok().<Void>build()))
+//                .onErrorResume(e -> {
+//                    String msg = e.getMessage(); // 💡 prevenir NPE
+//                    if (msg != null && msg.contains("Producto ya registrado")) {
+//                        return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build());
+//                    }
+//                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+//                });
+//    }
+    @PostMapping(value="producto/alta",consumes=MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Mono<Void>> altaProducto(@RequestBody Producto producto) {
+        return new ResponseEntity<>(productosService.altaProducto(producto),HttpStatus.OK);
     }
-
     @DeleteMapping(value="producto/eliminar")
     public Mono<ResponseEntity<Producto>> eliminarProducto(@RequestParam("cod") int cod) {
         return productosService.eliminarProducto(cod)//Mono<Producto>

@@ -13,11 +13,11 @@ import java.util.List;
 public class ProductoServiceImpl implements ProductoService {
 
     private static final List<Producto> productos = new ArrayList<>(List.of(
-            new Producto(1001, "Laptop Lenovo", "Tecnologia", 2999.99, 15),
-            new Producto(1002, "Smartphone Samsung", "Tecnologia", 1999.50, 30),
-            new Producto(1003, "Mouse Logitech", "Accesorios", 89.90, 100),
-            new Producto(1004, "Silla ergonomica", "Oficina", 450.00, 20),
-            new Producto(1005, "Audifonos Sony", "Accesorios", 299.99, 50)
+            new Producto(101, "Laptop Lenovo", "Tecnologia", 2999.99, 15),
+            new Producto(102, "Smartphone Samsung", "Tecnologia", 1999.50, 30),
+            new Producto(103, "Mouse Logitech", "Accesorios", 89.90, 100),
+            new Producto(104, "Silla ergonomica", "Oficina", 450.00, 20),
+            new Producto(105, "Audifonos Sony", "Accesorios", 299.99, 50)
     ));
 
 
@@ -40,16 +40,25 @@ public class ProductoServiceImpl implements ProductoService {
                 .next();
     }
 
-    @Override
-    public Mono<Void> altaProducto(Producto producto) {
-        return productoCodigo(producto.getCodProducto())
-                .flatMap(p -> Mono.error(new RuntimeException("Producto ya registrado")))
-                .switchIfEmpty(Mono.defer(() -> {
-                    productos.add(producto);  // Asegúrate de que 'productos' sea mutable
-                    return Mono.empty();
-                }))
-                .then();
-    }
+//    @Override
+//    public Mono<Void> altaProducto(Producto producto) {
+//        return productoCodigo(producto.getCodProducto())
+//                .flatMap(p -> Mono.error(new RuntimeException("Producto ya registrado")))
+//                .switchIfEmpty(Mono.defer(() -> {
+//                    productos.add(producto);  // Asegúrate de que 'productos' sea mutable
+//                    return Mono.empty();
+//                }))
+//                .then();
+//    }
+@Override
+public Mono<Void> altaProducto(Producto producto) {
+    return productoCodigo(producto.getCodProducto())//Mono<Producto>
+            .switchIfEmpty(Mono.just(producto).map(p->{
+                productos.add(producto);
+                return p;
+            }))//Mono<Producto>
+            .then();//Mono<Void>
+}
 
 
 
