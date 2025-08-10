@@ -1,57 +1,81 @@
 package controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import lombok.RequiredArgsConstructor;
 import model.Producto;
+import org.springframework.dao.DuplicateKeyException; // ¡este, el de Spring!
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import service.ProductosService;
 
 @CrossOrigin("*")
 @RestController
+@RequestMapping("/producto") // <-- base path del controller
+@RequiredArgsConstructor
 public class ProductosController {
-	@Autowired
-	ProductosService productosService;
-	@GetMapping(value="productos")
-	public ResponseEntity<Flux<Producto>> productos(){
-		return new ResponseEntity<>(productosService.catalogo(),HttpStatus.OK);
-	}
-	@GetMapping(value="productos/{categoria}")
-	public ResponseEntity<Flux<Producto>> productosCategoria(@PathVariable("categoria") String categoria){
-		return new ResponseEntity<>(productosService.productosCategoria(categoria),HttpStatus.OK);
-	}
-	
-	@GetMapping(value="producto")
-	public ResponseEntity<Mono<Producto>> productoCodigo(@RequestParam("cod") int cod) {
-		return new ResponseEntity<>(productosService.productoCodigo(cod),HttpStatus.OK);
-	}
-	@PostMapping(value="alta",consumes=MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<Mono<Void>> altaProducto(@RequestBody Producto producto) {
-		
-		return new ResponseEntity<>(productosService.altaProducto(producto),HttpStatus.OK);
-	}
-	@DeleteMapping(value="eliminar")
-	public Mono<ResponseEntity<Producto>> eliminarProducto(@RequestParam("cod") int cod) {
-		return productosService.eliminarProducto(cod)//Mono<Producto>
-				.map(p->new ResponseEntity<>(p,HttpStatus.OK))//Mono<ResponseEntity<Producto>>
-				.switchIfEmpty(Mono.just(new ResponseEntity<>(HttpStatus.NOT_FOUND)));//Mono<ResponseEntity<Producto>>
-	}
-	@PutMapping(value="actualizar")
-	public Mono<ResponseEntity<Producto>> actualizarProducto(@RequestParam("cod") int cod,@RequestParam("precio") double precio) {
-		return productosService.actualizarPrecio(cod, precio)//Mono<Producto>
-				.map(p->new ResponseEntity<>(p,HttpStatus.OK))//Mono<ResponseEntity<Producto>>
-				.switchIfEmpty(Mono.just(new ResponseEntity<>(HttpStatus.NOT_FOUND)));//Mono<ResponseEntity<Producto>>
-	}
+
+    private final ProductosService service;
+
+    // GET /producto  -> listar todo
+    @GetMapping
+    public ResponseEntity<Flux<Producto>> listar() {
+        return ResponseEntity.ok(service.catalogo());
+    }
+
+    // GET /producto/categoria/{categoria} -> listar por categoría
+    @GetMapping("/categoria/{categoria}")
+    public ResponseEntity<Flux<Producto>> listarPorCategoria(@PathVariable String categoria) {
+        return ResponseEntity.ok(service.productosCategoria(categoria));
+    }
+
+    // GET /producto/{cod} -> buscar por código (PathVariable en vez de query param)
+    @GetMapping("/{cod}")
+    public ResponseEntity<Mono<Producto>> porCodigo(@PathVariable Integer cod) {
+        return ResponseEntity.ok(service.productoCodigo(cod));
+    }
+
+    // POST /producto/alta -> alta
+    @PostMapping(value = "/alta", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Void>> alta(@RequestBody Producto producto) {
+        return service.altaProducto(producto).thenReturn(ResponseEntity.ok().build());
+    }
+
+    // PUT /producto/{cod}/precio?valor=199.9 -> actualizar precio
+    @PutMapping("/{cod}/precio")
+    public Mono<ResponseEntity<Producto>> actualizarPrecio(@PathVariable Integer cod,
+                                                           @RequestParam("valor") Double precio) {
+        return service.actualizarPrecio(cod, precio)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
+    // PATCH /producto/{cod}/stock?delta=-2 -> ajustar stock (+/-)
+    @PatchMapping("/{cod}/stock")
+    public Mono<ResponseEntity<Producto>> ajustarStock(@PathVariable Integer cod,
+                                                       @RequestParam Integer delta) {
+        return service.ajustarStock(cod, delta)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
+    // DELETE /producto/{cod} -> eliminar por código
+    @DeleteMapping("/{cod}")
+    public Mono<ResponseEntity<Producto>> eliminar(@PathVariable Integer cod) {
+        return service.eliminarProducto(cod)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
+    // DELETE /producto/por-nombre/{nombre} -> elimina por nombre (devuelve cantidad)
+    @DeleteMapping("/por-nombre/{nombre}")
+    public Mono<ResponseEntity<Long>> eliminarPorNombre(@PathVariable String nombre) {
+        return service.eliminarPorNombre(nombre).map(ResponseEntity::ok);
+    }
+
+    // DELETE /producto/por-precio?max=100.0 -> elimina con precio < max (devuelve cantidad)
+    @DeleteMapping("/por-precio")
+    public Mono<ResponseEntity<Long>> eliminarPorPrecio(@RequestParam("max") Double max) {
+        return service.eliminarPorPrecioMenorQue(max).map(ResponseEntity::ok);
+    }
 }

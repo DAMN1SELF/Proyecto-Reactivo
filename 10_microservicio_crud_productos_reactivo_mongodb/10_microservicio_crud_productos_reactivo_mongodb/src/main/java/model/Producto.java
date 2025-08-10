@@ -1,19 +1,22 @@
 package model;
 
+import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+@Document("productos")
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
-@Document(collection = "productos")
+@Builder
 public class Producto {
-	private int id;
-	private String nombre;
-	private String categoria;
-	private double precioUnitario;
-	private int stock;
+    @Id
+    private String id;
+    @Indexed(unique = true)
+    private Integer codProducto;       // único
+    private String nombre;
+    private String categoria;
+    private Double precioUnitario;
+    private Integer stock;
 }
